@@ -1,0 +1,5 @@
+{
+  "name": "LEDGER",
+  "description": "Specialized Order and Payment Manager with automated Credit Note adjustment logic and outstanding balance tracking.",
+  "requestFramePermissions": []
+}
