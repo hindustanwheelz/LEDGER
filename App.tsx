@@ -69,8 +69,24 @@ export default function App() {
   }, [entries]);
 
   const filteredEntries = useMemo(() => {
-    if (!filterDate) return entries;
-    return entries.filter(e => e.date.startsWith(filterDate));
+    // 1. Filter
+    let data = filterDate 
+      ? entries.filter(e => e.date.startsWith(filterDate))
+      : [...entries]; // Clone for sorting if not filtering to avoid mutation
+
+    // 2. Sort: Date Ascending -> Invoice Number Ascending
+    return data.sort((a, b) => {
+      // Primary: Date
+      if (a.date !== b.date) {
+        return a.date < b.date ? -1 : 1;
+      }
+      
+      // Secondary: Invoice Number (Smart Numeric Sort)
+      // This ensures "INV-2" comes before "INV-10" and newer invoices are "kept back" (later in list)
+      const invA = a.invoiceNo || '';
+      const invB = b.invoiceNo || '';
+      return invA.localeCompare(invB, undefined, { numeric: true, sensitivity: 'base' });
+    });
   }, [entries, filterDate]);
 
   // --- Statistics ---
