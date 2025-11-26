@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Plus, Download, Trash2, FileText, CreditCard, X, PlusCircle, Pencil, Upload, Save, AlertTriangle } from 'lucide-react';
+import { Plus, Download, Trash2, FileText, CreditCard, X, PlusCircle, Pencil, Upload, Save, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { LedgerEntry, Stats, InvoiceItem } from './types';
 import { formatCurrency, formatDate, addDays, generateId, cn } from './utils';
 import { Button } from './components/Button';
@@ -28,6 +28,7 @@ export default function App() {
   // Form State - Invoice
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [invoiceNum, setInvoiceNum] = useState('');
+  const [invoiceStatus, setInvoiceStatus] = useState<'PENDING' | 'PAID'>('PENDING');
   const [newInvoiceItems, setNewInvoiceItems] = useState<Omit<InvoiceItem, 'id'>[]>([
     { size: '', pattern: '', quantity: 1, unitPrice: 0 }
   ]);
@@ -174,6 +175,7 @@ export default function App() {
     setEditingId(null);
     setInvoiceDate(new Date().toISOString().split('T')[0]);
     setInvoiceNum('');
+    setInvoiceStatus('PENDING');
     setNewInvoiceItems([{ size: '', pattern: '', quantity: 1, unitPrice: 0 }]);
     setIsInvoiceModalOpen(true);
   };
@@ -193,6 +195,9 @@ export default function App() {
     if (entry.type === 'INVOICE') {
       setInvoiceDate(entry.date);
       setInvoiceNum(entry.invoiceNo);
+      // Determine status safely.
+      const currentStatus = (entry.status === 'PAID') ? 'PAID' : 'PENDING';
+      setInvoiceStatus(currentStatus);
       
       if (entry.items && entry.items.length > 0) {
         setNewInvoiceItems(entry.items);
@@ -260,6 +265,7 @@ export default function App() {
             invoiceAmount: totalAmount,
             items: finalItems,
             dueDate: addDays(invoiceDate, 30),
+            status: invoiceStatus, // Save manual status
           };
         }
         return entry;
@@ -277,7 +283,7 @@ export default function App() {
         invoiceAmount: totalAmount,
         items: finalItems,
         dueDate: addDays(invoiceDate, 30),
-        status: 'PENDING'
+        status: invoiceStatus // Use manual status (default PENDING)
       };
       setEntries(prev => [...prev, newInvoice]);
     }
@@ -309,7 +315,7 @@ export default function App() {
           id: generateId(),
           type: 'PAYMENT',
           date: transDate,
-          invoiceNo: '-',
+          invoiceNo: '-', // Will be displayed as 'PAYMENT' in grid
           paymentAmount: amountVal,
           notes: transNotes
         };
@@ -319,7 +325,7 @@ export default function App() {
           id: generateId(),
           type: 'CN',
           date: transDate,
-          invoiceNo: 'CN-ADJ',
+          invoiceNo: 'CN-ADJ', // Will be displayed as 'CN' in grid
           cnAmount: amountVal,
           notes: transNotes
         };
@@ -415,7 +421,7 @@ export default function App() {
 
   const handleExportCSV = () => {
     // Export ALL entries, not just filtered ones, to ensure complete data backup
-    const headers = ['DATE', 'INVOICE NO', 'SIZE', 'PATTERN', 'QUANTITY', 'UNIT PRICE', 'INVOICE AMOUNT', 'DUE DATE', 'PAYMENT', 'CN'];
+    const headers = ['DATE', 'INVOICE NO', 'SIZE', 'PATTERN', 'QUANTITY', 'UNIT PRICE', 'INVOICE AMOUNT', 'DUE DATE', 'STATUS', 'PAYMENT', 'CN'];
     const csvContent = "data:text/csv;charset=utf-8," 
       + headers.join(",") + "\n"
       + entries.map(e => {
@@ -432,6 +438,7 @@ export default function App() {
           `"${itemPrices}"`,
           e.invoiceAmount || '',
           e.dueDate || '',
+          e.status || '',
           e.paymentAmount || '',
           e.cnAmount || ''
         ].join(",");
@@ -603,6 +610,7 @@ export default function App() {
                       <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
                       <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider text-blue-700">Inv Amount</th>
                       <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-red-600">Due Date</th>
+                      <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider text-gray-600">Status</th>
                       <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider text-green-700">Payment</th>
                       <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider text-purple-700">CN</th>
                       <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
@@ -611,7 +619,7 @@ export default function App() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredEntries.length === 0 ? (
                       <tr>
-                        <td colSpan={11} className="px-6 py-12 text-center text-gray-400">
+                        <td colSpan={12} className="px-6 py-12 text-center text-gray-400">
                           {entries.length === 0 ? "No entries found. Start by adding an invoice." : "No entries found for this month."}
                         </td>
                       </tr>
@@ -619,13 +627,21 @@ export default function App() {
                       filteredEntries.map((entry) => (
                         <tr key={entry.id} className={cn(
                           "hover:bg-gray-50 transition-colors",
-                          entry.status === 'ADJUSTED' && "bg-gray-50 opacity-60 line-through decoration-gray-400"
+                          entry.status === 'ADJUSTED' && "bg-gray-50 opacity-60 line-through decoration-gray-400",
+                          entry.status === 'PAID' && entry.type === 'INVOICE' && "bg-green-50/30"
                         )}>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{formatDate(entry.date)}</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {entry.invoiceNo}
-                            {entry.status === 'ADJUSTED' && <span className="ml-1 text-xs text-orange-500">(Adj)</span>}
-                            {entry.status === 'PAID' && entry.type === 'INVOICE' && <span className="ml-1 text-xs text-green-500">(Pd)</span>}
+                            {entry.type === 'PAYMENT' ? (
+                              <span className="text-green-600 font-semibold text-xs">PAYMENT</span>
+                            ) : entry.type === 'CN' ? (
+                              <span className="text-purple-600 font-semibold text-xs">CN ADJ</span>
+                            ) : (
+                              <div className="flex items-center">
+                                {entry.invoiceNo}
+                                {entry.status === 'ADJUSTED' && <span className="ml-1 text-xs text-orange-500">(Adj)</span>}
+                              </div>
+                            )}
                           </td>
                           <td className="px-3 py-4 text-sm text-gray-500 max-w-xs break-words">{renderSizes(entry)}</td>
                           <td className="px-3 py-4 text-sm text-gray-500 max-w-xs break-words">{renderPatterns(entry)}</td>
@@ -636,6 +652,19 @@ export default function App() {
                           <td className="px-3 py-4 whitespace-nowrap text-sm font-semibold text-blue-700 text-right">{entry.invoiceAmount ? formatCurrency(entry.invoiceAmount) : '-'}</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-red-600 font-medium">
                             {entry.dueDate ? formatDate(entry.dueDate) : '-'}
+                          </td>
+                          {/* STATUS COLUMN */}
+                          <td className="px-3 py-4 whitespace-nowrap text-center">
+                            {entry.type === 'INVOICE' && entry.status === 'PAID' && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-800 border border-green-200">
+                                  PAID
+                                </span>
+                            )}
+                            {entry.type === 'INVOICE' && entry.status === 'PENDING' && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-800 border border-red-100">
+                                  Pending
+                                </span>
+                            )}
                           </td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-green-700 font-semibold text-right">{entry.paymentAmount ? formatCurrency(entry.paymentAmount) : '-'}</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-purple-700 font-semibold text-right">{entry.cnAmount ? formatCurrency(entry.cnAmount) : '-'}</td>
@@ -666,12 +695,13 @@ export default function App() {
                         </td>
                         <td className="px-3 py-3 text-right font-bold text-blue-800">{formatCurrency(stats.totalInvoiced)}</td>
                         <td></td>
+                        <td></td>
                         <td className="px-3 py-3 text-right font-bold text-green-800">{formatCurrency(stats.totalPaid)}</td>
                         <td className="px-3 py-3 text-right font-bold text-purple-800">{formatCurrency(stats.totalCN)}</td>
                         <td></td>
                       </tr>
                       <tr>
-                        <td colSpan={10} className="px-3 py-4 text-right">
+                        <td colSpan={11} className="px-3 py-4 text-right">
                           <span className="text-lg font-bold text-gray-500 mr-2">Net Outstanding (Global Debt):</span>
                           <span className={cn(
                             "text-xl font-bold",
@@ -744,6 +774,20 @@ export default function App() {
                   className={invoiceHeaderInputClass} 
                 />
               </div>
+            </div>
+
+            {/* STATUS FIELD for Manual Payment Tracking */}
+            <div className="bg-blue-50 p-3 rounded border border-blue-200">
+               <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Status</label>
+               <select 
+                 value={invoiceStatus}
+                 onChange={(e) => setInvoiceStatus(e.target.value as 'PENDING' | 'PAID')}
+                 className={invoiceHeaderInputClass}
+               >
+                 <option value="PENDING">Pending (Not Paid)</option>
+                 <option value="PAID">PAID (Settled)</option>
+               </select>
+               <p className="text-xs text-gray-500 mt-1">Mark as "PAID" if you have received full payment for this specific invoice.</p>
             </div>
             
             <div className="space-y-3">
