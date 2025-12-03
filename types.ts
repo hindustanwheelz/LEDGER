@@ -40,4 +40,5 @@ export interface Stats {
   qtyPcr: number;
   qtyNylon: number;
   qty2Wheeler: number;
+  qtyClaim: number;
 }

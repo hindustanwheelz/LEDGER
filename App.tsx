@@ -102,6 +102,7 @@ export default function App() {
     let qtyPcr = 0;
     let qtyNylon = 0;
     let qty2Wheeler = 0;
+    let qtyClaim = 0;
 
     filteredEntries.forEach(e => {
       if (e.type === 'INVOICE') {
@@ -119,7 +120,9 @@ export default function App() {
             const qty = item.quantity || 0;
 
             if (size) {
-              if (size.includes('R')) {
+              if (size.includes('(C)')) {
+                qtyClaim += qty;
+              } else if (size.includes('R')) {
                 qtyPcr += qty;
               } else if (size.includes('D')) {
                 qtyNylon += qty;
@@ -165,7 +168,8 @@ export default function App() {
       outstanding, 
       qtyPcr,
       qtyNylon,
-      qty2Wheeler
+      qty2Wheeler,
+      qtyClaim
     };
   }, [filteredEntries, entries]);
 
