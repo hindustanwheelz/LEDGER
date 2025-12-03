@@ -1,7 +1,7 @@
 import React from 'react';
 import { Stats } from '../types';
 import { formatCurrency } from '../utils';
-import { TrendingUp, TrendingDown, DollarSign, AlertCircle, Circle, Layers, Disc } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, AlertCircle, Circle, Layers, Disc, ShieldAlert } from 'lucide-react';
 
 interface StatsCardsProps {
   stats: Stats;
@@ -65,7 +65,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
 
       {/* Product Category Stats Row */}
       <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Tyre Category Sales (Qty)</h3>
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {/* PCR TYRE (contains 'R') */}
         <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-indigo-500">
           <div className="p-5">
@@ -111,6 +111,23 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">2WHEELER</dt>
                   <dd className="text-2xl font-semibold text-gray-900">{stats.qty2Wheeler}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* CLAIM (contains '(C)') */}
+        <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-yellow-500">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 bg-yellow-100 rounded-md p-3">
+                <ShieldAlert className="h-6 w-6 text-yellow-600" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">CLAIM</dt>
+                  <dd className="text-2xl font-semibold text-gray-900">{stats.qtyClaim}</dd>
                 </dl>
               </div>
             </div>
